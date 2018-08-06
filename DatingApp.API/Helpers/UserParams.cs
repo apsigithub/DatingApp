@@ -25,5 +25,10 @@ namespace DatingApp.API.Helpers
 
         // For Sorting
         public string OrderBy { get; set; }
+
+        // for filtering the user who likes other users and is liked by other users
+        public bool Likees { get; set; } = false;
+
+        public bool Likers { get; set; } = false;
     }
 }

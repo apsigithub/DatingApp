@@ -6,6 +6,7 @@ using AutoMapper;
 using DatingApp.API.Data;
 using DatingApp.API.Dtos;
 using DatingApp.API.Helpers;
+using DatingApp.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -65,7 +66,7 @@ namespace DatingApp.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(int id, UserForUpdateDto userForUpdateDto)
         {
-            // This checks if the user is the current user that's passed the token to the server that's attempting to access the route.
+            // Check authorization: This checks if the user is the current user that's passed the token to the server that's attempting to access the route.
             if (id != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))
                 return Unauthorized();
 
@@ -77,6 +78,40 @@ namespace DatingApp.API.Controllers
                 return NoContent();
 
             throw new Exception($"Updating user {id} failed on save.");
+        }
+
+        [HttpPost("{id}/Like/{recipientId}")]
+        public async Task<IActionResult> LikeUser(int id, int recipientId)
+        {
+            // Check authorization: This checks if the user is the current user that's passed the token to the server that's attempting to access the route.
+            if (id != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))
+                return Unauthorized();
+
+            // get a like from the repo/db
+            var like = await _repo.GetLike(id, recipientId);
+
+            // if the 'like' already exists for the user
+            if (like != null) 
+                return BadRequest("You already like this user");
+
+            // check the existence of the 'recipientId'
+            if (await _repo.GetUser(recipientId) == null)
+                return NotFound();
+
+            // create a new 'like'
+            like = new Like
+            {
+                LikerId = id,
+                LikeeId = recipientId
+            };
+
+            // add to the repo passing in the Like entity
+            _repo.Add<Like>(like);
+
+            if (await _repo.SaveAll())
+                return Ok();
+
+            return BadRequest("Failed to like user");
         }
     }
 }
